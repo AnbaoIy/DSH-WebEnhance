@@ -28,13 +28,17 @@ web_fetch  ─▶ Tavily     POST /extract ─┬─ 额度耗尽   402 / 432 / 
 
 三条路径，按当前部署能不能用挑一条：
 
-| 路径 | 前置条件 | 本机桌面版是否可用 |
+| 路径 | 前置条件 | 当前是否可用 |
 | --- | --- | --- |
-| 包名 | 插件已发布到 npm | 是（发布后） |
+| 包名 | 插件已发布到 npm | **否** —— 尚未发布 |
 | 仓库地址 | 能访问 GitHub | 是 |
 | 本地目录 | 有源码 | 是（改代码时用） |
 
 三条最终都落到 `plugin_manager` 工具的 `install_bundle`。**先安装，再重启 dsh**（原因见下）。
+
+`package.json` 里的 npm 元数据（`repository`、`publishConfig`、`files`、`peerDependenciesMeta`）
+已经备好，`npm pack --dry-run` 校验为 17 个文件、29.3 kB，随时可以 `npm publish`；
+在那之前用仓库地址或本地目录安装即可。
 
 ### 方式 1 · 让 agent 装（推荐）
 
@@ -42,8 +46,8 @@ web_fetch  ─▶ Tavily     POST /extract ─┬─ 额度耗尽   402 / 432 / 
 它接受三种 `target`：
 
 ```
-dsh-webenhance                                          # 包名，发布到 npm 之后
-https://github.com/AnbaoIy/DSH-WebEnhance               # 仓库
+dsh-webenhance                                          # 包名，发布到 npm 之后才能用
+https://github.com/AnbaoIy/DSH-WebEnhance               # 仓库 ← 现在用这条
 C:\path\to\dsh-webenhance                               # 本地绝对路径
 ```
 
@@ -58,8 +62,8 @@ C:\path\to\dsh-webenhance                               # 本地绝对路径
 只有你的 dsh 带有命令行入口时才可用；本机桌面版没有（`dsh` 不在 PATH，应用包里也没有 `bin`）。
 
 ```bash
-dsh plugin --profile desktop install dsh-webenhance
 dsh plugin --profile desktop install https://github.com/AnbaoIy/DSH-WebEnhance
+dsh plugin --profile desktop install dsh-webenhance      # 发布到 npm 之后
 ```
 
 ### 方式 3 · 本地路径
