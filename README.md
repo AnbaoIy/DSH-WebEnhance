@@ -158,7 +158,7 @@ dsh plugin --profile desktop remove dsh-webenhance
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| `configured web provider "web-enhance" is not registered` | 插件行已插入，但它的模块没加载成功（patch 已生效、provider 没注册）。看插件管理器报告的失败原因，改好后**重启 dsh**。 |
+| `configured web provider "web-enhance" is not registered` | 插件行已插入，但它的模块没加载成功（patch 生效了、provider 没注册）。**这时 `web_search` 与 `web_fetch` 会一起失效**，因为 `web` 行已被指向一个不存在的 provider。要先把 web 工具救回来：用 `plugin_manager` 的 `set_bundle`（`target: "dsh-webenhance"`、`enabled: false`）停用插件，`web` 行随即回到内置 provider —— 抓取立刻恢复，搜索则需要 `DEEPSEEK_API_KEY`。之后再看插件管理器报告的失败原因，修好并**重启 dsh**。 |
 | `web_search` 报「no API key」 | 三家 key 都还没配。去设置页填，或设 `PARALLEL_API_KEY` 等环境变量——**环境变量要在启动 dsh 的那个环境里**才有用。 |
 | 改了插件代码没反应 | 模块在进程启动时就被缓存。重启 dsh。 |
 | 卸载后 `web_search` 报缺 `DEEPSEEK_API_KEY` | 内置 DeepSeek 搜索 provider 回来了。填那把 key，或把 `web.searchProvider` 指向别家。 |
