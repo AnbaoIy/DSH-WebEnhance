@@ -28,28 +28,23 @@ web_fetch  ─▶ Tavily     POST /extract ─┬─ 额度耗尽   402 / 432 / 
 
 **尚未发布到 npm**，所以不能用包名安装，要指向仓库地址。下面任选一种。
 
-### 方式 1 · 侧边栏（推荐）
-
-1. 打开侧边栏的**插件**页
-2. 点**安装组合包**
-3. 填 `https://github.com/AnbaoIy/DSH-WebEnhance`
-
-页面会先读出这个 spec 指向什么（名称、版本、是否声明了组合包），确认后再交给 pnpm。
-
-### 方式 2 · 让 agent 装
+### 方式 1 · 让 agent 装（推荐）
 
 对话里直接说「从 https://github.com/AnbaoIy/DSH-WebEnhance 安装插件」，
 agent 会调用 `plugin_manager` 工具的 `install_bundle`。
 这个动作要求 `danger-full-access` 权限或当次批准——安装的代码会在宿主进程里运行，
 不受工作区沙箱限制。
 
-### 方式 3 · CLI
+> 这个构建没有对外露出插件管理界面：`main` 槽位只被会话占用，`settings.plugins.tab` 为空，
+> 侧边栏也没有插件图标。所以这条路是不依赖手敲命令的安装途径。
+
+### 方式 2 · CLI
 
 ```bash
 dsh plugin --profile desktop install https://github.com/AnbaoIy/DSH-WebEnhance
 ```
 
-### 方式 4 · 本地路径（改代码时用）
+### 方式 3 · 本地路径（改代码时用）
 
 ```bash
 dsh plugin --profile desktop install C:\path\to\dsh-webenhance
@@ -100,14 +95,17 @@ agent 预设里真正生效的那份 `tool-web` 嵌在 `preset-standard.config.p
 
 ### 什么时候要重启
 
-- **首次安装**：Host 半边随 profile 重新组合立即生效；设置页要**刷新一下浏览器**才会出现。
-- **升级到新版本**：必须重启 dsh 进程。已加载的 JavaScript 模块不会原地换掉。
+- **首次安装**：要**重启 dsh**。插件模块在宿主进程启动时 import 一次并被缓存，
+  仅靠 enable/disable 不会重新加载——这也是排查「改了代码没反应」时先看的地方。
+  客户端半边（设置页）随后刷新页面即可出现。
+- **升级到新版本**：同样必须重启 dsh 进程。已加载的 JavaScript 模块不会原地换掉。
 
 ## 卸载
 
-### 侧边栏
+### 让 agent 卸（推荐）
 
-侧边栏 → **插件** → 找到 `dsh-webenhance` → 移除。
+`plugin_manager` 工具，`action: "remove_bundle"`，`target: "dsh-webenhance"`。
+`target` 用**包名**，不是安装时用的那个路径。
 
 ### CLI
 
@@ -115,9 +113,9 @@ agent 预设里真正生效的那份 `tool-web` 嵌在 `preset-standard.config.p
 dsh plugin --profile desktop remove dsh-webenhance
 ```
 
-### 让 agent 卸
+仅当你的 dsh 有命令行入口时可用。
 
-`plugin_manager` 工具，`action: "remove_bundle"`，`target: "dsh-webenhance"`。
+> 移除后建议重启 dsh：patch 会立即失效，但已加载的模块仍在进程里。
 
 ### 卸载做了什么
 
@@ -138,8 +136,11 @@ dsh plugin --profile desktop remove dsh-webenhance
 
 ## 设置页
 
-装好后在 **设置 → 插件 → 网页增强** 里可以直接填三把 key、选择抓取供应商，
-不需要改配置文件，也不需要重启 dsh。
+装好并**重启 dsh** 后，打开 **设置 → 网页增强**（与「常规」「模型」并列的一个分区），
+可以直接填三把 key、选择抓取供应商，不需要改配置文件。
+
+> 它注册在 `settings.section` 槽位（`order: 45`），不是某个「插件」分区下的页面——
+> 这个构建没有对外露出插件管理界面，注册到 `plugins.item` 的卡片无处渲染。
 
 这一页由 `lib/client.js` 提供（客户端插件，`package.json` 的 `dsh.client` 与
 `exports["./client"]` 声明）。Host 侧不需要任何额外代码：只要 `Config` 里存在
