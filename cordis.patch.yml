@@ -1,0 +1,35 @@
+# DSH-WebEnhance — 把 web seam 的搜索与抓取分别指向不同供应商。
+#
+#   web_search -> Parallel  /v1/search   (provider id: parallel)
+#   web_fetch  -> Tavily    /extract     (provider id: auto)
+#                   └─ 额度耗尽 / 触发反爬 / 抓不到正文 时升级 Firecrawl /v2/scrape
+#   web_fetch  -> Firecrawl /v2/scrape   (provider id: firecrawl，强制单家，调试与应急用)
+#
+# 凭据默认从环境变量读取：PARALLEL_API_KEY / TAVILY_API_KEY / FIRECRAWL_API_KEY。
+# 也可以在下面的 config 里写字面量 key，例如：
+#   config:
+#     search: { apiKey: '...' }
+#     fetch:
+#       tavily: { apiKey: '...' }
+#       firecrawl: { apiKey: '...' }
+
+- insert:
+    - id: web-enhance
+      name: 'dsh-webenhance'
+
+# 覆盖内置的 provider 选择（原行只有这两个键，patch 会替换整行 config）。
+- id: web
+  config:
+    searchProvider: parallel
+    fetchProvider: auto
+
+# Tavily + Firecrawl 已经取代内置 DeepSeek 搜索，因此不再需要 DEEPSEEK_API_KEY。
+- id: web-search-deepseek
+  disabled: true
+
+# 抓取链最坏情况要串行跑两家，默认 30s 不够：抬到 60s。
+- id: tool-web
+  config:
+    fetch: true
+    fetchTimeoutMs: 60000
+    searchTimeoutMs: 60000

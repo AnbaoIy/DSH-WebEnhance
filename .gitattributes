@@ -1,0 +1,2 @@
+# 统一按 LF 存储，避免 Windows 上 checkout 出 CRLF 混进仓库。
+* text=auto eol=lf
