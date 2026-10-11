@@ -27,9 +27,10 @@
 - id: web-search-deepseek
   disabled: true
 
-# 抓取链最坏情况要串行跑两家，默认 30s 不够：抬到 60s。
-- id: tool-web
-  config:
-    fetch: true
-    fetchTimeoutMs: 60000
-    searchTimeoutMs: 60000
+# 注意：工具层的超时（tool-web.fetchTimeoutMs，默认 30000）在这里改不到。
+# agent 预设里真正生效的那份 tool-web 嵌在 preset-standard.config.plugins[] 内，
+# 而 cordis.patch.yml 只能按 id 定位顶层条目、并整体替换它的 config
+# （见 dsh-app-boot README：「用户 patch 会替换匹配到的整个配置」）。
+# 因此本插件把 fetch.totalTimeoutMs 的默认值压到 28000，稳在 30s 之内。
+# 想让升级链跑得更久，请先在 agent 预设里把 tool-web 的 fetchTimeoutMs 改为 60000，
+# 再相应提高插件 config 里的 fetch.totalTimeoutMs（例如 55000）。

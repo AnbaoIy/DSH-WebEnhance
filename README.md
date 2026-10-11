@@ -37,9 +37,13 @@ dsh plugin --profile desktop add dsh-webenhance
 | `web-enhance` | 插入本插件 |
 | `web` | `searchProvider: parallel`、`fetchProvider: auto` |
 | `web-search-deepseek` | `disabled: true`（所以不再需要 `DEEPSEEK_API_KEY`） |
-| `tool-web` | `fetchTimeoutMs` / `searchTimeoutMs` 从 30000 抬到 60000 |
 
-抓取链最坏情况要跑两层网络请求，30000 ms 会不够用，所以最后一处是必需的。
+> patch 是**按 id 定位顶层条目并整体替换它的 `config`**，不做深度合并。
+> agent 预设里那份真正生效的 `tool-web` 嵌在 `preset-standard.config.plugins[]` 内，
+> 顶层 patch 够不到它，所以本插件**不依赖**放宽工具层超时 —— 整条抓取链的默认预算
+> `fetch.totalTimeoutMs` 已经压到 28000，稳在 `tool-web.fetchTimeoutMs` 默认的 30000 之内。
+> 想让升级链跑得更久（例如让 Firecrawl 处理很慢的页面），先在 agent 预设里把 `tool-web`
+> 的 `fetchTimeoutMs` 改成 60000，再把 `fetch.totalTimeoutMs` 调到 55000。
 
 ## 配置 API key
 
@@ -81,9 +85,9 @@ FIRECRAWL_API_KEY=...
 | --- | --- | --- |
 | `minChars` | `500` | 正文短于此判为"没抓到"，触发升级；0 关闭该判定 |
 | `maxBodyChars` | `200000` | 返回给工具层的正文上限 |
-| `totalTimeoutMs` | `55000` | 整条链的总预算，必须小于 `tool-web.fetchTimeoutMs` |
+| `totalTimeoutMs` | `28000` | 整条链的总预算，必须小于 `tool-web.fetchTimeoutMs`（默认 30000） |
 | `tavily.extractDepth` | `basic` | `basic` 时每 5 个成功 URL 记 1 credit |
-| `tavily.timeoutMs` | `20000` | |
+| `tavily.timeoutMs` | `12000` | 留给 Firecrawl 兜底预算 |
 | `firecrawl.onlyMainContent` | `true` | 确定性 HTML 过滤，免费 |
 | `firecrawl.maxAge` | `172800000` | 缓存容忍度（2 天）；0 表示强制新鲜抓取 |
 | `firecrawl.proxy` | `auto` | `basic` / `enhanced` / `auto`，`enhanced` 不额外计费 |
@@ -130,7 +134,8 @@ Tavily 和 Firecrawl 都没有可靠的"剩余余额"接口，所以插件在本
   也就是说它在这个用法下不一定比 Firecrawl 便宜 —— 选它作为第一层主要图的是 100 RPM 的
   速度和保护 Firecrawl 那 1000 额度。
 - 账本是**本地估算**，不是服务端真实余额；只在"显然耗尽"时才做硬性跳过。
-- 抓取链最坏会串行跑两层，`totalTimeoutMs` 之外没有更多补偿手段。
+- 抓取链最坏会串行跑两层；`totalTimeoutMs` 是唯一的硬预算，用完就不再升级。
+  它默认 28000，受 agent 预设里 `tool-web.fetchTimeoutMs`（默认 30000）的约束。
 
 ## 开发
 
