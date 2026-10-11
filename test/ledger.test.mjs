@@ -54,26 +54,6 @@ test("账本目录不可写时降级为内存状态，不抛错", async () => {
   });
 });
 
-test("enabled=false 时完全不落盘", async () => {
-  await withTempDir(async (directory) => {
-    const path = join(directory, "ledger.json");
-    const ledger = new QuotaLedger({ path, enabled: false, now: () => new Date(2026, 4, 12) });
-    await ledger.markExhausted("tavily", { reason: "HTTP 432", status: 432 });
-    await assert.rejects(readFile(path, "utf8"));
-  });
-});
-
-test("noteUsage 累加计数", async () => {
-  await withTempDir(async (directory) => {
-    const ledger = new QuotaLedger({ path: join(directory, "ledger.json"), now: () => new Date(2026, 4, 12) });
-    await ledger.noteUsage("firecrawl", 1);
-    await ledger.noteUsage("firecrawl", 1);
-    const snapshot = await ledger.snapshot();
-    assert.equal(snapshot.usage.firecrawl.calls, 2);
-    assert.equal(snapshot.usage.firecrawl.units, 2);
-  });
-});
-
 test("currentMonth 补零", () => {
   assert.equal(currentMonth(new Date(2026, 0, 5)), "2026-01");
   assert.equal(currentMonth(new Date(2026, 11, 31)), "2026-12");

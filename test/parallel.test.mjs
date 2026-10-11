@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PARALLEL_PROVIDER_ID, ParallelSearchProvider } from "../lib/providers/parallel.js";
+import { SEARCH_PROVIDER_ID, ParallelSearchProvider } from "../lib/providers/parallel.js";
 
 const BASE = "https://api.parallel.ai";
 
@@ -19,10 +19,7 @@ function makeProvider({ fetchImpl, overrides = {} }) {
     baseURL: BASE,
     mode: "basic",
     maxResults: 10,
-    maxCharsTotal: 0,
-    snippetChars: 1200,
     timeoutMs: 5000,
-    objective: "",
     fetchImpl,
     ...overrides,
   }));
@@ -53,7 +50,7 @@ test("把 Parallel 的结果映射成 seam 的 sources", async () => {
   }));
 
   const provider = makeProvider({ fetchImpl });
-  assert.equal(provider.id, PARALLEL_PROVIDER_ID);
+  assert.equal(provider.id, SEARCH_PROVIDER_ID);
 
   const result = await provider.search({ query: "hello world", maxResults: 5 }, undefined);
 
@@ -63,8 +60,9 @@ test("把 Parallel 的结果映射成 seam 的 sources", async () => {
   assert.deepEqual(seen.body.search_queries, ["hello world"]);
   assert.equal(seen.body.mode, "basic");
   assert.equal(seen.body.advanced_settings.max_results, 5);
-  assert.equal("objective" in seen.body, false);
-  assert.equal("max_chars_total" in seen.body, false);
+  // 请求体只发 Parallel 认得的字段。
+  assert.deepEqual(Object.keys(seen.body).sort(), ["advanced_settings", "mode", "search_queries"]);
+  assert.deepEqual(Object.keys(seen.body.advanced_settings), ["max_results"]);
 
   assert.equal(result.truncated, false);
   assert.deepEqual(result.sources, [
@@ -89,26 +87,15 @@ test("request.maxResults 缺省时落到配置值，且不超过配置上限", a
   assert.equal(seen.body.advanced_settings.max_results, 8);
 });
 
-test("objective 与 max_chars_total 只在有效时才发出去", async () => {
-  const { seen, fetchImpl } = capture(jsonResponse({ results: [] }));
-  const provider = makeProvider({
-    fetchImpl,
-    overrides: { objective: "找到官方定价页", maxCharsTotal: 4096 },
-  });
-
-  await provider.search({ query: "pricing" }, undefined);
-  assert.equal(seen.body.objective, "找到官方定价页");
-  assert.equal(seen.body.max_chars_total, 4096);
-});
-
-test("摘录按 snippetChars 截断", async () => {
+test("摘录按固定的 1200 字符截断", async () => {
+  const long = "a".repeat(1400);
   const { fetchImpl } = capture(jsonResponse({
-    results: [{ url: "https://example.com/a", excerpts: ["abcdefghij"] }],
+    results: [{ url: "https://example.com/a", excerpts: [long] }],
   }));
-  const provider = makeProvider({ fetchImpl, overrides: { snippetChars: 5 } });
 
-  const result = await provider.search({ query: "q" }, undefined);
-  assert.equal(result.sources[0].snippet, "abcde…");
+  const result = await makeProvider({ fetchImpl }).search({ query: "q" }, undefined);
+  assert.equal(result.sources[0].snippet.length, 1201);
+  assert.equal(result.sources[0].snippet.endsWith("…"), true);
 });
 
 test("没有 key 时抛 WEB_PROVIDER_CREDENTIAL_MISSING", async () => {

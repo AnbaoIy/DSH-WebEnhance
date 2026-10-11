@@ -6,7 +6,10 @@
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js"
+    ".": "./lib/index.js",
+    "./client": {
+      "default": "./lib/client.js"
+    }
   },
   "engines": {
     "node": ">=20.0.0"
@@ -31,6 +34,15 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ],
+      "platform": "web"
     }
   },
   "peerDependencies": {
@@ -42,6 +54,6 @@
   },
   "scripts": {
     "pretest": "node tools/make-shims.mjs",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test --test-isolation=none \"test/**/*.test.mjs\""
   }
 }
