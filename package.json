@@ -3,19 +3,32 @@
   "version": "0.1.0",
   "description": "DSH-WebEnhance: route web_search to Parallel and web_fetch to Tavily, escalating to Firecrawl when Tavily is out of quota, blocked by anti-bot, or returns no usable content.",
   "license": "MIT",
+  "author": "AnbaoIy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnbaoIy/DSH-WebEnhance.git"
+  },
+  "homepage": "https://github.com/AnbaoIy/DSH-WebEnhance#readme",
+  "bugs": {
+    "url": "https://github.com/AnbaoIy/DSH-WebEnhance/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": {
       "default": "./lib/client.js"
-    }
+    },
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "dsh": ">=0.2.0-rc.1"
   },
   "files": [
     "lib",
+    "locale/*.json",
     "cordis.patch.yml",
     "README.md",
     "LICENSE"
@@ -31,6 +44,10 @@
     "tavily",
     "firecrawl"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -52,7 +69,25 @@
     "@deepseek-ai/dsh-web": "*",
     "@deepseek-ai/schemastery": "*"
   },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-launch-environment": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-web": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
   "scripts": {
-    "test": "node --test --test-isolation=none --import ./test/register-shims.mjs \"test/**/*.test.mjs\""
+    "test": "node --test --test-isolation=none --import ./test/register-shims.mjs \"test/**/*.test.mjs\"",
+    "prepublishOnly": "npm test"
   }
 }

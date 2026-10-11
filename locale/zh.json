@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "网页增强",
+    "description": "搜索走 Parallel，抓取优先 Tavily；额度耗尽、触发反爬或抓不到正文时降级 Firecrawl。"
+  }
+}

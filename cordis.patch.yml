@@ -6,7 +6,7 @@
 #   web_fetch  -> 强制单家                (fetchVendor: tavily 或 firecrawl)
 #
 # 凭据默认从环境变量读取：PARALLEL_API_KEY / TAVILY_API_KEY / FIRECRAWL_API_KEY。
-# 更推荐在「设置 → 插件 → 网页增强」页面里填 key 与选择供应商，那些值不会进这个文件。
+# 更推荐在 dsh 的「设置 → 网页增强」页面里填 key 与选择供应商，那些值不会进这个文件。
 # 也可以在这里直接写字面量（配置项都是顶层字段）：
 #   config:
 #     searchApiKey: '...'

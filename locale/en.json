@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Web enhance",
+    "description": "Search with Parallel, fetch with Tavily and fall back to Firecrawl when Tavily is out of quota, blocked by anti-bot, or returns no usable content."
+  }
+}

@@ -26,29 +26,46 @@ web_fetch  ─▶ Tavily     POST /extract ─┬─ 额度耗尽   402 / 432 / 
 
 ## 安装
 
-**尚未发布到 npm**，所以不能用包名安装，要指向仓库地址。下面任选一种。
+三条路径，按当前部署能不能用挑一条：
+
+| 路径 | 前置条件 | 本机桌面版是否可用 |
+| --- | --- | --- |
+| 包名 | 插件已发布到 npm | 是（发布后） |
+| 仓库地址 | 能访问 GitHub | 是 |
+| 本地目录 | 有源码 | 是（改代码时用） |
+
+三条最终都落到 `plugin_manager` 工具的 `install_bundle`。**先安装，再重启 dsh**（原因见下）。
 
 ### 方式 1 · 让 agent 装（推荐）
 
-对话里直接说「从 https://github.com/AnbaoIy/DSH-WebEnhance 安装插件」，
-agent 会调用 `plugin_manager` 工具的 `install_bundle`。
-这个动作要求 `danger-full-access` 权限或当次批准——安装的代码会在宿主进程里运行，
+对话里直接说「安装插件 dsh-webenhance」或给出仓库地址，agent 会调用 `plugin_manager`。
+它接受三种 `target`：
+
+```
+dsh-webenhance                                          # 包名，发布到 npm 之后
+https://github.com/AnbaoIy/DSH-WebEnhance               # 仓库
+C:\path\to\dsh-webenhance                               # 本地绝对路径
+```
+
+这个动作要求 `danger-full-access` 权限或当次批准 —— 安装的代码会在宿主进程里运行，
 不受工作区沙箱限制。
 
 > 这个构建没有对外露出插件管理界面：`main` 槽位只被会话占用，`settings.plugins.tab` 为空，
-> 侧边栏也没有插件图标。所以这条路是不依赖手敲命令的安装途径。
+> 侧边栏也没有插件图标。所以「让 agent 装」是唯一不依赖手敲命令的途径。
 
 ### 方式 2 · CLI
 
+只有你的 dsh 带有命令行入口时才可用；本机桌面版没有（`dsh` 不在 PATH，应用包里也没有 `bin`）。
+
 ```bash
+dsh plugin --profile desktop install dsh-webenhance
 dsh plugin --profile desktop install https://github.com/AnbaoIy/DSH-WebEnhance
 ```
 
-### 方式 3 · 本地路径（改代码时用）
+### 方式 3 · 本地路径
 
 ```bash
 dsh plugin --profile desktop install C:\path\to\dsh-webenhance
-dsh plugin --profile desktop install file:C:\path\to\dsh-webenhance
 ```
 
 路径必须是**绝对**的。相对路径会被拒绝：Host 的工作目录对一个在浏览器里打字的人
@@ -58,23 +75,25 @@ dsh plugin --profile desktop install file:C:\path\to\dsh-webenhance
 
 | 形式 | 例子 |
 | --- | --- |
+| registry | `dsh-webenhance`、`dsh-webenhance@0.1.0` |
 | git | `https://github.com/AnbaoIy/DSH-WebEnhance`、`github:AnbaoIy/DSH-WebEnhance`、`git+https://…`、`git@github.com:…` |
 | 本地路径 | `C:\…\dsh-webenhance`、`file:…`、`link:…` |
-| tarball | `https://…/dsh-webenhance-0.1.0.tgz` |
-| registry | `dsh-webenhance`（发布之后才可用） |
+| tarball | `…\dsh-webenhance-0.1.0.tgz`（`npm pack` 的产物） |
 
 ### 关于兼容性检查
 
-dsh 会拿插件的 `peerDependencies` 和当前运行时比对，不匹配就拒绝安装。
+dsh 会拿插件的 `peerDependencies` 和当前运行时比对，**只比对以 `@deepseek-ai/dsh` 或
+`@deepseek-ai/dsh-` 开头的名字**，不匹配就拒绝安装。
 本地路径与 registry spec 在 pnpm 之前就能判定；**git 与 tarball 必须先抓下来才知道，
 所以判定发生在安装之后** —— 被拒时会回滚 `package.json` 与 `pnpm-lock.yaml`。
 
-本插件的 peer 全部声明为 `*`，正常情况不会触发拒绝。若 dsh 升级后开始拒绝，
-用 `dsh plugin --profile desktop allow-version` 或插件管理器授予**精确版本**的豁免；
+本插件的三个被检查的 peer（`dsh-web`、`dsh-credentials`、`dsh-launch-environment`）
+全部声明为 `*`，正常情况不会触发拒绝。若 dsh 升级后开始拒绝，用
+`dsh plugin --profile desktop allow-version` 或插件管理器授予**精确版本**的豁免；
 这会承担崩溃与数据丢失的风险，务必先看清提示。
 
 安装时如果 pnpm 拦下了某个依赖的构建脚本，页面会提示「允许这些脚本并重试」，
-需要单独批准。
+需要单独批准。本插件没有安装脚本，不会碰到这一步。
 
 ### 安装后改了什么
 
@@ -105,7 +124,7 @@ agent 预设里真正生效的那份 `tool-web` 嵌在 `preset-standard.config.p
 ### 让 agent 卸（推荐）
 
 `plugin_manager` 工具，`action: "remove_bundle"`，`target: "dsh-webenhance"`。
-`target` 用**包名**，不是安装时用的那个路径。
+`target` 用**包名**，不是安装时用的那个路径或仓库地址。
 
 ### CLI
 
@@ -113,7 +132,7 @@ agent 预设里真正生效的那份 `tool-web` 嵌在 `preset-standard.config.p
 dsh plugin --profile desktop remove dsh-webenhance
 ```
 
-仅当你的 dsh 有命令行入口时可用。
+同样只在你的 dsh 有命令行入口时可用。
 
 > 移除后建议重启 dsh：patch 会立即失效，但已加载的模块仍在进程里。
 
@@ -133,6 +152,18 @@ dsh plugin --profile desktop remove dsh-webenhance
 - `web-search-deepseek` 恢复启用，**此时必须有 `DEEPSEEK_API_KEY`**，否则 `web_search` 会直接报错
 - 额度标记文件 `$DSH_HOME/web-enhance-ledger.json` **不会被删**，要清理请手动删除
 - 键值仍留在 dsh 凭据服务里。设置页消失后无法再从界面清掉，用 `dsh` 的凭据管理或直接删对应条目
+- 本地源码目录不受影响，包括 pnpm 为本地路径安装建立的链接
+
+## 排障
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| `configured web provider "web-enhance" is not registered` | 插件行已插入，但它的模块没加载成功（patch 已生效、provider 没注册）。看插件管理器报告的失败原因，改好后**重启 dsh**。 |
+| `web_search` 报「no API key」 | 三家 key 都还没配。去设置页填，或设 `PARALLEL_API_KEY` 等环境变量——**环境变量要在启动 dsh 的那个环境里**才有用。 |
+| 改了插件代码没反应 | 模块在进程启动时就被缓存。重启 dsh。 |
+| 卸载后 `web_search` 报缺 `DEEPSEEK_API_KEY` | 内置 DeepSeek 搜索 provider 回来了。填那把 key，或把 `web.searchProvider` 指向别家。 |
+| 抓取总是走到 Firecrawl | 看返回正文是否短于 `fetchMinChars`，或命中反爬特征词；也可把 `fetchVendor` 临时设为 `tavily` 观察第一层的原始结果，再把 `tavilyTimeoutMs` 调大。 |
+| 设置页只有导航项、右侧空白 | 客户端半边报错了。打开开发者工具看控制台；最常见的是 slot 注册漏了 `inject` 里的 `t`。 |
 
 ## 设置页
 
@@ -243,19 +274,24 @@ Tavily 与 Firecrawl 都没有可靠的余额查询接口，插件因此只维�
   的响应速度，以及保护 Firecrawl 的 1000 credits。
 - 额度标记是**本地记录**，并非服务端真实余额；仅在明显耗尽时才硬性跳过。
 - 抓取链最坏会串行两层；`fetchTotalTimeoutMs` 是唯一的硬预算，用尽后不再升级。
+- **Seam 不发布观测接口**：没有 provider 变更事件，也没有状态查询。要知道某次抓取
+  走了哪一家，只能从结果里的 URL 规范化痕迹（Firecrawl 会回它自己跟随重定向后的
+  `metadata.url`）或报错文本反推。
 
 ## 开发
 
 ```bash
-npm test          # pretest 会先生成 @deepseek-ai/* 的本地 shim
+npm test
 ```
 
-测试不联网，全部使用注入的假 `fetch`。若运行环境禁止子进程管道（例如受限沙箱），
-`node --test` 会因 spawn EPERM 失败，改用同进程模式：
+测试不联网，全部使用注入的假 `fetch`。`@deepseek-ai/*` 是运行时提供的包，本仓库不装它们，
+而是在 `test/shims/` 放一份替身，由 `test/register-shims.mjs`（Node 的模块定制钩子）
+在测试时替换掉真实的解析——**不要把它们装进 `node_modules/`**：pnpm 把整个插件目录链进
+profile 时会连带链进去，从而遮蔽 dsh 自带的真包（表现为激活时报
+`TypeError: Cannot read properties of undefined (reading 'validate')`）。
 
-```bash
-node --test --test-isolation=none 'test/**/*.test.mjs'
-```
+`--test-isolation=none` 是为了绕开受限沙箱禁止子进程管道（spawn EPERM）的限制；
+在普通终端里去掉它也可以。
 
 ```
 lib/
@@ -270,6 +306,9 @@ lib/
   providers/auto.js       web_fetch：Tavily → Firecrawl
   providers/tavily.js     Tavily /extract
   providers/firecrawl.js  Firecrawl /v2/scrape
+locale/
+  en.json                 插件管理器与设置页里显示的标题、描述
+  zh.json
 ```
 
 ## License
