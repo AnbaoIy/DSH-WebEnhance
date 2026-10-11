@@ -26,11 +26,64 @@ web_fetch  ─▶ Tavily     POST /extract ─┬─ 额度耗尽   402 / 432 / 
 
 ## 安装
 
+**尚未发布到 npm**，所以不能用包名安装，要指向仓库地址。下面任选一种。
+
+### 方式 1 · 侧边栏（推荐）
+
+1. 打开侧边栏的**插件**页
+2. 点**安装组合包**
+3. 填 `https://github.com/AnbaoIy/DSH-WebEnhance`
+
+页面会先读出这个 spec 指向什么（名称、版本、是否声明了组合包），确认后再交给 pnpm。
+
+### 方式 2 · 让 agent 装
+
+对话里直接说「从 https://github.com/AnbaoIy/DSH-WebEnhance 安装插件」，
+agent 会调用 `plugin_manager` 工具的 `install_bundle`。
+这个动作要求 `danger-full-access` 权限或当次批准——安装的代码会在宿主进程里运行，
+不受工作区沙箱限制。
+
+### 方式 3 · CLI
+
 ```bash
-dsh plugin --profile desktop add dsh-webenhance
+dsh plugin --profile desktop install https://github.com/AnbaoIy/DSH-WebEnhance
 ```
 
-安装后由插件的 `cordis.patch.yml` 覆盖三处：
+### 方式 4 · 本地路径（改代码时用）
+
+```bash
+dsh plugin --profile desktop install C:\path\to\dsh-webenhance
+dsh plugin --profile desktop install file:C:\path\to\dsh-webenhance
+```
+
+路径必须是**绝对**的。相对路径会被拒绝：Host 的工作目录对一个在浏览器里打字的人
+没有意义，而按 profile 目录解析出来的路径只会落进 profile 内部。
+
+### 支持的 spec 形式
+
+| 形式 | 例子 |
+| --- | --- |
+| git | `https://github.com/AnbaoIy/DSH-WebEnhance`、`github:AnbaoIy/DSH-WebEnhance`、`git+https://…`、`git@github.com:…` |
+| 本地路径 | `C:\…\dsh-webenhance`、`file:…`、`link:…` |
+| tarball | `https://…/dsh-webenhance-0.1.0.tgz` |
+| registry | `dsh-webenhance`（发布之后才可用） |
+
+### 关于兼容性检查
+
+dsh 会拿插件的 `peerDependencies` 和当前运行时比对，不匹配就拒绝安装。
+本地路径与 registry spec 在 pnpm 之前就能判定；**git 与 tarball 必须先抓下来才知道，
+所以判定发生在安装之后** —— 被拒时会回滚 `package.json` 与 `pnpm-lock.yaml`。
+
+本插件的 peer 全部声明为 `*`，正常情况不会触发拒绝。若 dsh 升级后开始拒绝，
+用 `dsh plugin --profile desktop allow-version` 或插件管理器授予**精确版本**的豁免；
+这会承担崩溃与数据丢失的风险，务必先看清提示。
+
+安装时如果 pnpm 拦下了某个依赖的构建脚本，页面会提示「允许这些脚本并重试」，
+需要单独批准。
+
+### 安装后改了什么
+
+由插件的 `cordis.patch.yml` 覆盖三处：
 
 | 目标 | 改动 |
 | --- | --- |
@@ -44,6 +97,44 @@ agent 预设里真正生效的那份 `tool-web` 嵌在 `preset-standard.config.p
 `fetchTotalTimeoutMs` 为 28000，稳在 `tool-web.fetchTimeoutMs` 默认的 30000 之内。
 若要让升级链跑得更久，先在 agent 预设里把 `tool-web.fetchTimeoutMs` 改为 60000，
 再把 `fetchTotalTimeoutMs` 提到 55000。
+
+### 什么时候要重启
+
+- **首次安装**：Host 半边随 profile 重新组合立即生效；设置页要**刷新一下浏览器**才会出现。
+- **升级到新版本**：必须重启 dsh 进程。已加载的 JavaScript 模块不会原地换掉。
+
+## 卸载
+
+### 侧边栏
+
+侧边栏 → **插件** → 找到 `dsh-webenhance` → 移除。
+
+### CLI
+
+```bash
+dsh plugin --profile desktop remove dsh-webenhance
+```
+
+### 让 agent 卸
+
+`plugin_manager` 工具，`action: "remove_bundle"`，`target: "dsh-webenhance"`。
+
+### 卸载做了什么
+
+按顺序三步，任一步失败就停在那里、不继续：
+
+1. 从 `package.json` 的 `dsh.profile.bundles` 移除
+2. 卸载运行时贡献（本插件的 patch 随之失效）
+3. `pnpm remove dsh-webenhance`
+
+失败的删除可能留下部分依赖改动——诊断在 profile 的 `.plugin-manager/logs` 目录里。
+
+### 卸载后会怎样
+
+- `web` 行的 `searchProvider` / `fetchProvider` 回到内置的 `deepseek-official` / `http`
+- `web-search-deepseek` 恢复启用，**此时必须有 `DEEPSEEK_API_KEY`**，否则 `web_search` 会直接报错
+- 额度标记文件 `$DSH_HOME/web-enhance-ledger.json` **不会被删**，要清理请手动删除
+- 键值仍留在 dsh 凭据服务里。设置页消失后无法再从界面清掉，用 `dsh` 的凭据管理或直接删对应条目
 
 ## 设置页
 
